@@ -1,9 +1,13 @@
 import glob 
 import os
 import sys 
+import yaml
+import json
+import shutil
 
 
 def find_files(directory: str, file: str, exit: bool() = False, recursive: bool() = True):
+
     error_message = "ERROR " + file + " not found !"
     files = []
 
@@ -25,5 +29,56 @@ def find_files(directory: str, file: str, exit: bool() = False, recursive: bool(
         return files
 
 
+def file_ext(path:str):
+
+    file = os.path.basename(path)
+    ext = file.split(".")[-1]
+    return ext
+
+
+def parse_manifest(path:str):
+    """ 
+
+        Parse a manifest file which contains the files/directories to be added to the release 
+        Should be able to use XML, JSON, YAML etc 
+
+    """
+
+    if os.path.isdir(path):
+        path = glob.glob(os.path.join(path, "manifest.*"))
+        if type(path) is list:
+            path = path[0]
+
+    ext = file_ext(path)
+
+    if ext == "yml" or "yaml":
+        with open(path) as file:
+            return yaml.safe_load(file)
+
+    if ext == "json":
+        with open(path) as file:
+            return json.load(file)
+
+
+def copy_tree(src: str, dst: str):
+
+    root = os.path.abspath(os.curdir)
+    dst = os.path.abspath(dst)
+    os.chdir(src)
+
+    dst = os.path.join(dst, src)
+    try:
+        os.makedirs(dst)
+    except FileExistsError:
+        pass
+
+    for x in os.listdir(os.curdir):
+        if os.path.isdir(x):
+            copy_tree(x, dst)
+        else:
+            shutil.copy(x, dst)
+    os.chdir(root)  # pull back out
+
+
 if __name__ == '__main__':
-    print(find_files("C:/Users/horga", ".gitconfig", exit=True))
+    copy_tree("layer1", "layer2")
